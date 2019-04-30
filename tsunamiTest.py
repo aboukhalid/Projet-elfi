@@ -52,4 +52,4 @@ dt = 0.1; nIter = 100; nSave = 25
 [U,V,E] = tsunami.compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave)
 
 for iElem in [27,28] :
-  print(" == Elevations for element %d : %14.7e %14.7e %14.7e " % (iElem,*E[iElem][:]) )
+  print(" == Elevations for element %d : %14.7e %14.7e %14.7e " % (iElem,*E[iElem][:]))
