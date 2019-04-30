@@ -14,13 +14,13 @@ import numpy as np
 
 def readMesh(fileName) :
   with open(fileName,"r") as f :
-    nNode = int(f.readline().split()[3])
+    nNode = int(f.readline().split()[3]) #nbre de noeuds
     xyz   = np.array(list(list(float(w) for w in f.readline().split()[2:]) for i in range(nNode)))
-    nElem = int(f.readline().split()[3])
-    elem  = np.array(list(list(int(w)   for w in f.readline().split()[2:]) for i in range(nElem)))
-  X = xyz[:,0]
-  Y = xyz[:,1]
-  H = xyz[:,2]
+    nElem = int(f.readline().split()[3]) #nbre de triangles
+    elem  = np.array(list(list(int(w)   for w in f.readline().split()[2:]) for i in range(nElem))) #triangles
+  X = xyz[:,0] #coordonnées x de chaque triangle
+  Y = xyz[:,1] #coordonnées y de chaque triangle
+  H = xyz[:,2] #bathymétrie 
   return [nNode,X,Y,H,nElem,elem]
 
 # -------------------------------------------------------------------------
@@ -46,7 +46,7 @@ def findEdges(fileName) :
         if (edges[i][0:2] != edges[i-1][1::-1]) :
          edges[index] = edges[i]
          index += 1
-        else :
+        else:
          edges[index-1][3] = edges[i][2]
     del edges[index:]
     edges.sort(key = lambda item : item[3])
@@ -56,7 +56,7 @@ def findEdges(fileName) :
     return [nEdges,nBoundary,edges]
 
 # -------------------------------------------------------------------------
-  
+
 def readResult(fileBaseName,iter,nElem) :
   fileName = fileBaseName % iter
   with open(fileName,"r") as f :
