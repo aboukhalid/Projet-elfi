@@ -126,35 +126,59 @@ def compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave):
   xsi3 = np.array([0.166666666666667,0.666666666666667,0.166666666666667])
   eta3 = np.array([0.166666666666667,0.166666666666667,0.666666666666667])
   weight3 = np.array([0.166666666666667,0.166666666666667,0.166666666666667])
+  
+  dphidx = np.zeros([nElem,3])
+  dphidy = np.zeros([nElem,3])
+  stereo = np.zeros([nElem,3])
+  jac = np.zeros(nElem)
+  
   R = 6371220;
   gamma = 10**-7
   g = 9.81
   omega = 2*np.pi/86400
   
-  for i in range nIter:
+  for i in range(nIter):
       u = np.copy(U)
       U = np.zeros((nElem,3))
       v = np.copy(V)
       V = np.zeros((nElem,3))
       e = np.copy(E)
       E = np.zeros((nElem,3))
-      for iElem in range nElem:
+      for iElem in range(nElem):
           #boucle pour initialiser tous les elements necessaires aux calcul
-      for i in range(nElem):
-          #boucle pour les integrales sur les triangles
+          #Calculer phi_i,un*,vn*,etaeh,
           nodes = elem[i]    
           
           x = X[nodes]
           y = Y[nodes]
+     
+          jac[i] = abs((x[1]-x[0])*(y[2]-y[0])-(x[2]-x[0])*(y[1]-y[0])) #on calcule le jacobien 
+          
+          dphidx[i] = np.array([(y[1]-y[2]),(y[2]-y[0]),(y[0]-y[1])])/jac[i] #on calcule dphidx 
+          dphidy[i] = np.array([(x[2]-x[1]),(x[0]-x[2]),(x[1]-x[0])])/jac[i] #on calcule dphidy
+      #for iEdge in range(nEdges):
+          #boucle pour initialiser les elements restants necessaires au calcul et lies aux segments
+          #calculer etastar, ustar, vstar, nx et ny
+          
+      for jElem in range(nElem):
+          #boucle pour les integrales sur les triangles
+          nodes = elem[jElem]        
+          x = X[nodes]
+          y = Y[nodes]
           h = H[nodes]
-          for j in range(3):
-               stereo = (4*R*R+x[j]*x[j]+y[j]*y[j])/(4*R*R)
-               #E[i] += weight3[j]*(u[i]*dphidx[j] + v[i]*dphidy[j])*h[j]*jac*stereo #terme 1 de E
-               #E[i] += weight3[j]*h[j]/(R*R)*(x[j]*u[i]+y[j]*V[i]) #demander comment calculer le phi
-          if(i%nSave==0):
-              #write dans un fichier
-          
-          
+          for k in range(3):
+              stereo = (4*R*R+x[k]*x[k]+y[k]*y[k])/(4*R*R)
+              E[jElem][k] += weight3[k]*(u[jElem][k]*dphidx[jElem][k] + v[jElem][k]*dphidy[jElem][k])*h[k]*jac[jElem]*stereo #terme 1 de E
+              #E[i] += weight3[jElem]*h[jElem]/(R*R)*(x[jElem]*u[i]+y[jElem]*V[i]) #demander comment calculer le phi
+      if((i+1)%nSave==0):
+          theResultFiles = "tsunami-%06d.txt"
+          writeResult(theResultFiles,i+1,E)
+              #write dans un fichier  
+      U += dt*U
+      V += dt*V
+  return [U,V,E]
+  
+
 
   #calcul de E (l elevation de l eau pour chaque triangle)
   #besoin de dphidx et dphidy,h,u,v,x,y
@@ -174,4 +198,4 @@ def compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave):
                
   #calcul de V (la vitesse verticale de l eau pour chaque triangle)
   
-  return [U,V,E]
+  
