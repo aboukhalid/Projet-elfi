@@ -28,7 +28,7 @@ def readMesh(fileName) :
 def findEdges(fileName) :
     nElem = readMesh(fileName)[4]
     nEdges = nElem*3 
-    elem = mesh[5]
+    elem = readMesh(fileName)[5]
     nBoudary = 0
     edges = [[0 for i in range(4)] for i in range(nEdges)]
     for i in range (nElem) :
@@ -39,7 +39,7 @@ def findEdges(fileName) :
         edges[id][2] = i
         edges[id][3] = -1
     
-    edges.sort(key = lambda item : -(min(item[0:2])*self.nEdges)-max(item[0:2])) 
+    edges.sort(key = lambda item : -(min(item[0:2])*nEdges)-max(item[0:2])) 
     index = 0
     
     for i in range(nEdges) :
@@ -101,15 +101,15 @@ def initialConditionOkada(x,y) :
  
 # -------------------------------------------------------------------------
 
-def mapEdge(theEdges,iEdge) :
-  myEdge = theEdges.edges[iEdge]
+def mapEdge(theEdges,Element,iEdge) :
+  myEdge = theEdges[iEdge]
   elementLeft  = myEdge[2]
-  nodesLeft    = elem[elementLeft]
+  nodesLeft    = Element[elementLeft]
   mapEdgeLeft  = [3*elementLeft + np.nonzero(nodesLeft == myEdge[j])[0][0]  for j in range(2)]
   mapLeft      = [3*elementLeft + j                                         for j in range(3)]
   elementRight = myEdge[3]
   if (elementRight != -1) :
-    nodesRight   = theMesh.elem[elementRight]
+    nodesRight   = Element[elementRight]
     mapEdgeRight = [3*elementRight + np.nonzero(nodesRight == myEdge[j])[0][0] for j in range(2)]
     mapRight     = [3*elementRight + j                                         for j in range(3)]
   else :
@@ -123,6 +123,7 @@ def mapEdge(theEdges,iEdge) :
 def compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave):
   #U V et E de longueur nElem
   [nNode,X,Y,H,nElem,elem] = readMesh(theMeshFile)
+  [nEdges,nBoundary,edges] = findEdges(theMeshFile)
   xsi3 = np.array([0.166666666666667,0.666666666666667,0.166666666666667])
   eta3 = np.array([0.166666666666667,0.166666666666667,0.666666666666667])
   weight3 = np.array([0.166666666666667,0.166666666666667,0.166666666666667])
@@ -139,11 +140,8 @@ def compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave):
   
   for i in range(nIter):
       u = np.copy(U)
-      U = np.zeros((nElem,3))
       v = np.copy(V)
-      V = np.zeros((nElem,3))
       e = np.copy(E)
-      E = np.zeros((nElem,3))
       for iElem in range(nElem):
           #boucle pour initialiser tous les elements necessaires aux calcul
           #Calculer phi_i,un*,vn*,etaeh,
@@ -162,20 +160,30 @@ def compute(theMeshFile,theResultFiles,U,V,E,dt,nIter,nSave):
           
       for jElem in range(nElem):
           #boucle pour les integrales sur les triangles
-          nodes = elem[jElem]        
+          nodes = elem[jElem]
           x = X[nodes]
           y = Y[nodes]
           h = H[nodes]
           for k in range(3):
               stereo = (4*R*R+x[k]*x[k]+y[k]*y[k])/(4*R*R)
               E[jElem][k] += weight3[k]*(u[jElem][k]*dphidx[jElem][k] + v[jElem][k]*dphidy[jElem][k])*h[k]*jac[jElem]*stereo #terme 1 de E
-              #E[i] += weight3[jElem]*h[jElem]/(R*R)*(x[jElem]*u[i]+y[jElem]*V[i]) #demander comment calculer le phi
+              #E[i] += weight3[k]*h[k]*(x[jElem]*u[i]+y[jElem]*V[i])*sterep #demander comment calculer le phi
+      for jEdge in range(nEdges):
+          #trouver phi, h, et ustar
+          infoEdge = edges[jEdge]
+          nodes = [infoEdge[0],infoEdge[1]]
+          x = X[nodes]
+          y = Y[nodes]
+          h = H[nodes]
+          for k in range(2):
+              stereo = (4*R*R+x[k]*x[k]+y[k]*y[k])/(4*R*R)
+      
       if((i+1)%nSave==0):
-          theResultFiles = "tsunami-%06d.txt"
           writeResult(theResultFiles,i+1,E)
               #write dans un fichier  
       U += dt*U
       V += dt*V
+      E += dt*E
   return [U,V,E]
   
 
